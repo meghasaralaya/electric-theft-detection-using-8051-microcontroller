@@ -14,3 +14,15 @@ A microcontroller-based system that detects electricity theft by monitoring abno
 - Current Sensor: ACS712 (±30A variant)
 - ADC: ADC0808 (8-channel, 8-bit)
 - Output: 16x2 LCD + Buzzer
+
+# How the Detection Works
+ACS712 sensors output a voltage proportional to current (2.5V baseline, ±sensitivity).
+ADC0808 converts both analog readings to 8-bit digital values.
+8051 reads both values and computes the difference.
+If `|I1 - I2| > THRESHOLD`, the system triggers buzzer and displays "THEFT DETECTED".
+Normal readings display both current values continuously on LCD.
+
+# Validation
+- Full circuit simulated in Proteus 8 with virtual ACS712 and ADC models.
+- Tested with varying input voltages to simulate different current scenarios.
+- Verified LCD output and buzzer response for both normal and anomaly conditions.
