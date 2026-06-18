@@ -1,0 +1,126 @@
+#include <reg51.h> 
+// LCD connections 
+#define LCD_DATA P2 
+sbit RS = P3^7;       
+// RS -> P3.7 
+sbit RW = P3^6;
+sbit EN = P3^5;
+// ADC connections 
+       //
+       //
+ RW -> P3.6 
+ EN -> P3.5 
+#define ADC_DATA P1           // OUT1-OUT8 from ADC to P1.0–P1.7 
+sbit ADD_A = P0^1;
+           //
+sbit ADD_B = P0^2;
+sbit ADD_C = P0^3;
+sbit START = P0^6;        
+           //
+           //
+ ADC0808 Address A -> P0.1 
+ Address B -> P0.2 
+ Address C -> P0.3 
+   // ADC START -> P0.6 
+sbit EOC   = P0^7;          
+sbit OE    = P0^4;
+sbit ALE   = P0^5;
+// Buzzer connection 
+sbit BUZZER = P3^4;     
+#define THRESHOLD 5 
+ // ADC END OF CONV -> P0.7 
+           // ADC Output Enable -> P0.4 
+           //
+ ADC Address Latch Enable -> P0.5 
+     //
+ Buzzer control pin 
+          //
+ Set difference threshold 
+void delay_ms(unsigned int ms); 
+void lcd_cmd(unsigned char cmd); 
+void lcd_data(unsigned char dat); 
+void lcd_init(); 
+void lcd_print(char *str); 
+unsigned char adc_read(unsigned char channel); 
+9 
+void main() {  
+unsigned char input_val, output_val, diff; 
+lcd_init(); 
+lcd_print("Electric Theft"); 
+delay_ms(1500); 
+lcd_cmd(0x01); 
+BUZZER = 0; // Make sure buzzer is off initially 
+while (1) { 
+input_val   = adc_read(0); // ADC IN0 (input sensor) 
+output_val  = adc_read(1); // ADC IN1 (output sensor) 
+if (input_val > output_val) 
+diff = input_val - output_val; 
+else 
+diff = output_val - input_val; 
+lcd_cmd(0x01); 
+lcd_cmd(0x80); 
+if (diff > THRESHOLD) { 
+lcd_print("Theft Detected"); 
+BUZZER = 1;    // Buzzer ON 
+} else { 
+lcd_print("No Theft"); 
+BUZZER = 0;    // Buzzer OFF 
+} 
+delay_ms(500); 
+} 
+} 
+void delay_ms(unsigned int ms) { 
+unsigned int i, j; 
+10 
+for (i = 0; i < ms; i++) 
+for (j = 0; j < 100; j++); 
+} 
+void lcd_cmd(unsigned char cmd) { 
+LCD_DATA = cmd; 
+RS = 0; 
+RW = 0; 
+EN = 1; 
+delay_ms(1); 
+EN = 0; 
+delay_ms(3); 
+} 
+void lcd_data(unsigned char dat) { 
+LCD_DATA = dat; 
+RS = 1; 
+RW = 0; 
+EN = 1; 
+delay_ms(1); 
+EN = 0; 
+delay_ms(3); 
+} 
+void lcd_init() { 
+lcd_cmd(0x38); 
+lcd_cmd(0x0C); 
+lcd_cmd(0x01); 
+lcd_cmd(0x06); 
+lcd_cmd(0x80); 
+} 
+void lcd_print(char *str) { 
+while (*str) 
+lcd_data(*str++); 
+11 
+} 
+unsigned char adc_read(unsigned char channel) { 
+unsigned char value; 
+ADD_A = channel & 0x01; 
+ADD_B = (channel >> 1) & 0x01; 
+ADD_C = (channel >> 2) & 0x01; 
+ALE = 1;        // Latch address 
+delay_ms(1); 
+ALE = 0; 
+START = 1;      // Start conversion 
+delay_ms(1); 
+START = 0; 
+while (EOC == 0); // Wait for conversion 
+OE = 1; 
+delay_ms(1); 
+value = ADC_DATA; // Read result 
+OE = 0; 
+delay_ms(1); 
+return value; 
+}
